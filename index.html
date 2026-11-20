@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>散场以后｜大世界观剧指南</title>
+  <style>
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      background: #fafafa;
+      color: #292929;
+      font-family: "Microsoft YaHei", sans-serif;
+    }
+    header {
+      padding: 22px 6%;
+      background: white;
+      border-bottom: 1px solid #eee;
+      font-size: 22px;
+      font-weight: bold;
+    }
+    header span { color: #e94b65; }
+    main {
+      max-width: 1050px;
+      margin: auto;
+      padding: 48px 24px;
+    }
+    .label { color: #e94b65; font-size: 16px; }
+    h1 {
+      font-size: clamp(30px, 6vw, 48px);
+      margin: 14px 0;
+    }
+    .intro { color: #666; line-height: 1.9; }
+    .filters {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin: 32px 0;
+    }
+    button {
+      padding: 12px 20px;
+      border: 1px solid #ddd;
+      border-radius: 24px;
+      background: white;
+      color: #444;
+      cursor: pointer;
+      font: inherit;
+    }
+    button.active {
+      background: #e94b65;
+      border-color: #e94b65;
+      color: white;
+    }
+    button:focus-visible {
+      outline: 3px solid #292929;
+      outline-offset: 3px;
+    }
+    .content {
+      padding: 32px;
+      border-radius: 20px;
+      background: white;
+      border: 1px solid #eee;
+      min-height: 200px;
+    }
+    .content h2 { margin-top: 0; }
+    .content p { color: #666; line-height: 1.9; }
+    footer {
+      margin-top: 32px;
+      color: #777;
+      font-size: 14px;
+      line-height: 1.8;
+    }
+  </style>
+</head>
+<body>
+  <header><span>散场以后</span> · 大世界观剧指南</header>
+
+  <main>
+    <div class="label">上海 · 大世界</div>
+    <h1>看一场戏，也逛一逛周边</h1>
+    <p class="intro">
+      演前吃饭、买一束花、补充随身物品，或为跨城观剧找个落脚处。
+    </p>
+
+    <nav class="filters" aria-label="店铺分类">
+      <button class="active" data-category="全部" aria-pressed="true">全部</button>
+      <button data-category="餐饮" aria-pressed="false">餐饮</button>
+      <button data-category="花店" aria-pressed="false">花店</button>
+      <button data-category="便利店" aria-pressed="false">便利店</button>
+      <button data-category="住宿" aria-pressed="false">住宿</button>
+    </nav>
+
+    <section class="content" aria-live="polite">
+      <h2 id="category-title">探索大世界周边</h2>
+      <p id="category-description">
+        点击上方分类，选择你需要的观剧配套。
+      </p>
+      <p>网站搭建中，真实店铺与地图将在后续接入。</p>
+    </section>
+
+    <footer>
+      GIS课程实践项目。店铺营业时间、价格及营业状态以商家实际信息为准。
+    </footer>
+  </main>
+
+  <script>
+    const descriptions = {
+      "全部": ["探索大世界周边", "点击上方分类，选择你需要的观剧配套。"],
+      "餐饮": ["演前与散场后的餐饮", "寻找正餐、咖啡茶饮和甜品。"],
+      "花店": ["带一束花去看戏", "查看周边花店，购花与预约信息请向商家确认。"],
+      "便利店": ["观剧前的小补给", "寻找饮用水、纸巾等日常用品。"],
+      "住宿": ["跨城观剧的落脚处", "了解周边住宿位置，房价与空房以预订平台为准。"]
+    };
+
+    document.querySelectorAll("[data-category]").forEach(button => {
+      button.addEventListener("click", () => {
+        document.querySelectorAll("[data-category]").forEach(item => {
+          item.classList.remove("active");
+          item.setAttribute("aria-pressed", "false");
+        });
+        button.classList.add("active");
+        button.setAttribute("aria-pressed", "true");
+
+        const content = descriptions[button.dataset.category];
+        document.getElementById("category-title").textContent = content[0];
+        document.getElementById("category-description").textContent = content[1];
+      });
+    });
+  </script>
+</body>
+</html>
