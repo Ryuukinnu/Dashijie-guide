@@ -344,6 +344,85 @@ AMapLoader.load({
 
   guideMap.addControl(new AMap.Scale());
   guideMap.addControl(new AMap.ToolBar());
+  // 加载大世界出入口
+fetch("./dashijie-entrances-amap.json")
+  .then(response => {
+    if (!response.ok) throw new Error("入口文件读取失败");
+    return response.json();
+  })
+  .then(data => {
+    const entranceMarkers = [];
+
+    data.features.forEach((feature, index) => {
+      if (feature.geometry?.type !== "Point") return;
+
+      const name = "大世界出入口" + (index + 1);
+
+      const markerContent = document.createElement("div");
+      markerContent.textContent = "入口" + (index + 1);
+      markerContent.style.cssText = `
+        background:#087f5b;
+        color:white;
+        padding:7px 10px;
+        border:2px solid white;
+        border-radius:8px;
+        font-size:14px;
+        white-space:nowrap;
+        box-shadow:0 2px 8px #0003;
+        cursor:pointer;
+      `;
+
+      const marker = new AMap.Marker({
+        position: feature.geometry.coordinates,
+        content: markerContent,
+        anchor: "bottom-center",
+        title: name,
+        zIndex: 200
+      });
+
+      marker.on("click", () => {
+        const content = document.createElement("div");
+        const title = document.createElement("strong");
+        title.textContent = name;
+
+        const note = document.createElement("p");
+        note.textContent =
+          "用户提供的入口位置，观演用途及开放情况待核实。";
+
+        content.append(title, note);
+
+        new AMap.InfoWindow({
+          content,
+          offset: new AMap.Pixel(0, -35)
+        }).open(guideMap, feature.geometry.coordinates);
+      });
+
+      entranceMarkers.push(marker);
+    });
+
+    guideMap.add(entranceMarkers);
+
+    const button = document.createElement("button");
+    button.textContent = "查看大世界出入口";
+    button.className = "more";
+    button.type = "button";
+
+    button.addEventListener("click", () => {
+      if (entranceMarkers.length) {
+        guideMap.setFitView(entranceMarkers);
+      }
+    });
+
+    document.getElementById("shop-map").after(button);
+  })
+  .catch(error => {
+    console.error("入口加载失败：", error);
+    const message = document.createElement("p");
+    message.className = "muted";
+    message.textContent =
+      "入口加载失败，请检查 dashijie-entrances-amap.json 文件。";
+    document.getElementById("shop-map").after(message);
+  });
   // 读取大世界建筑轮廓
 fetch("./dashijie-building-amap.json")
   .then(response => {
