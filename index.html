@@ -344,6 +344,57 @@ AMapLoader.load({
 
   guideMap.addControl(new AMap.Scale());
   guideMap.addControl(new AMap.ToolBar());
+  // 读取大世界建筑轮廓
+fetch("./dashijie-building-amap.json")
+  .then(response => {
+    if (!response.ok) {
+      throw new Error("建筑文件读取失败");
+    }
+    return response.json();
+  })
+  .then(data => {
+    const buildingPolygons = [];
+
+    data.features.forEach(feature => {
+      if (feature.geometry.type !== "Polygon") return;
+
+      const polygon = new AMap.Polygon({
+        path: feature.geometry.coordinates,
+        strokeColor: "#df4361",
+        strokeWeight: 3,
+        fillColor: "#df4361",
+        fillOpacity: 0.25,
+        zIndex: 40
+      });
+
+      buildingPolygons.push(polygon);
+    });
+
+    guideMap.add(buildingPolygons);
+
+    // 增加一个按钮，方便随时找到大世界
+    const locateButton = document.createElement("button");
+    locateButton.textContent = "查看大世界建筑";
+    locateButton.className = "more";
+    locateButton.type = "button";
+
+    locateButton.addEventListener("click", () => {
+      if (buildingPolygons.length) {
+        guideMap.setFitView(buildingPolygons);
+      }
+    });
+
+    document.getElementById("shop-map").after(locateButton);
+  })
+  .catch(error => {
+    console.error("建筑轮廓加载失败：", error);
+
+    const message = document.createElement("p");
+    message.className = "muted";
+    message.textContent =
+      "建筑轮廓加载失败，请检查仓库中的文件名。";
+    document.getElementById("shop-map").after(message);
+  });
   updateGuideMap();
 }).catch(error => {
   document.getElementById("map-status").textContent =
