@@ -243,5 +243,113 @@ async function load(){
 }
 load();
 </script>
+<!-- 周边店铺地图 -->
+<script src="https://webapi.amap.com/loader.js"></script>
+<script>
+window._AMapSecurityConfig = {
+  securityJsCode: "7e10633c69c9e2f1e0036ef6a3609b70"
+};
+
+const mapSection = document.createElement("section");
+mapSection.style.margin = "24px 0";
+mapSection.innerHTML = `
+  <h2>周边地图</h2>
+  <p id="map-status" class="muted" role="status">
+    正在加载地图……
+  </p>
+  <div id="shop-map"
+       aria-label="周边店铺地图"
+       style="height:440px;width:100%;border-radius:18px;
+              overflow:hidden;background:#eee"></div>
+`;
+document.querySelector(".controls").after(mapSection);
+
+let guideMap;
+let guideAMap;
+let guideMarkers = [];
+
+function updateGuideMap() {
+  if (!guideMap || !guideAMap) return;
+
+  guideMap.remove(guideMarkers);
+  guideMarkers = [];
+
+  const status = document.getElementById("map-status");
+
+  if (area !== "大世界") {
+    status.textContent = area + "数据待接入，请先切回大世界。";
+    return;
+  }
+
+  if (failed) {
+    status.textContent = "店铺数据读取失败，请刷新页面。";
+    return;
+  }
+
+  if (!loaded) {
+    status.textContent = "地图已加载，正在等待店铺数据……";
+    return;
+  }
+
+  const results = filtered();
+
+  // 与列表一致，只展示当前已显示的店铺，避免点位过于密集。
+  results.slice(0, limit).forEach(shop => {
+    const coordinates = shop.geometry?.coordinates;
+    if (!Array.isArray(coordinates)) return;
+
+    const longitude = Number(coordinates[0]);
+    const latitude = Number(coordinates[1]);
+    if (!Number.isFinite(longitude) ||
+        !Number.isFinite(latitude)) return;
+
+    const marker = new guideAMap.Marker({
+      position: [longitude, latitude],
+      title: shop.properties.name
+    });
+
+    marker.on("click", () => openDetail(shop));
+    guideMarkers.push(marker);
+  });
+
+  guideMap.add(guideMarkers);
+
+  if (guideMarkers.length) {
+    guideMap.setFitView(guideMarkers);
+  }
+
+  status.textContent =
+    "地图展示当前列表中的 " + guideMarkers.length +
+    " 家店铺，点击标记查看详情。坐标位置待实地核对。";
+}
+
+// 每次搜索、切换类别或加载更多时，同步更新地图。
+const renderWithoutMap = render;
+render = function () {
+  renderWithoutMap();
+  updateGuideMap();
+};
+
+AMapLoader.load({
+  key: "565a133f9f77facadae1c9cc99f37916",
+  version: "2.0",
+  plugins: ["AMap.Scale", "AMap.ToolBar"]
+}).then(AMap => {
+  guideAMap = AMap;
+  guideMap = new AMap.Map("shop-map", {
+    zoom: 14,
+    center: [121.48, 31.23],
+    viewMode: "2D"
+  });
+
+  guideMap.addControl(new AMap.Scale());
+  guideMap.addControl(new AMap.ToolBar());
+  updateGuideMap();
+}).catch(error => {
+  document.getElementById("map-status").textContent =
+    "地图加载失败，请检查Key、安全密钥及域名设置。店铺列表仍可使用。";
+  console.error("地图加载失败：", error);
+});
+</script>
 </body>
 </html>
