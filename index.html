@@ -1,131 +1,247 @@
 <!DOCTYPE html>
 <html lang="zh-CN">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>散场以后｜大世界观剧指南</title>
-  <style>
-    * { box-sizing: border-box; }
-    body {
-      margin: 0;
-      background: #fafafa;
-      color: #292929;
-      font-family: "Microsoft YaHei", sans-serif;
-    }
-    header {
-      padding: 22px 6%;
-      background: white;
-      border-bottom: 1px solid #eee;
-      font-size: 22px;
-      font-weight: bold;
-    }
-    header span { color: #e94b65; }
-    main {
-      max-width: 1050px;
-      margin: auto;
-      padding: 48px 24px;
-    }
-    .label { color: #e94b65; font-size: 16px; }
-    h1 {
-      font-size: clamp(30px, 6vw, 48px);
-      margin: 14px 0;
-    }
-    .intro { color: #666; line-height: 1.9; }
-    .filters {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 10px;
-      margin: 32px 0;
-    }
-    button {
-      padding: 12px 20px;
-      border: 1px solid #ddd;
-      border-radius: 24px;
-      background: white;
-      color: #444;
-      cursor: pointer;
-      font: inherit;
-    }
-    button.active {
-      background: #e94b65;
-      border-color: #e94b65;
-      color: white;
-    }
-    button:focus-visible {
-      outline: 3px solid #292929;
-      outline-offset: 3px;
-    }
-    .content {
-      padding: 32px;
-      border-radius: 20px;
-      background: white;
-      border: 1px solid #eee;
-      min-height: 200px;
-    }
-    .content h2 { margin-top: 0; }
-    .content p { color: #666; line-height: 1.9; }
-    footer {
-      margin-top: 32px;
-      color: #777;
-      font-size: 14px;
-      line-height: 1.8;
-    }
-  </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>散场以后｜环人广观剧指南</title>
+<style>
+*{box-sizing:border-box}
+body{margin:0;background:#fafafa;color:#292929;font-family:"Microsoft YaHei",sans-serif}
+header{background:white;border-bottom:1px solid #eee;padding:20px 6%;font-size:22px;font-weight:bold}
+header span{color:#df4361}
+main{max-width:1150px;margin:auto;padding:36px 22px}
+.eyebrow{color:#df4361}
+h1{font-size:clamp(28px,5vw,44px);margin:14px 0}
+.intro,.muted{color:#707070;line-height:1.8}
+.controls{margin:28px 0}
+.tabs{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:16px}
+button,input{font:inherit}
+button{cursor:pointer}
+.tabs button,.more{border:1px solid #ddd;background:white;border-radius:24px;padding:11px 19px;color:#444}
+.tabs button.active{background:#df4361;color:white;border-color:#df4361}
+button:focus-visible,a:focus-visible,input:focus-visible{outline:3px solid #333;outline-offset:3px}
+input{width:100%;padding:15px 18px;border:1px solid #ddd;border-radius:12px;background:white}
+.summary{margin:20px 0;color:#666}
+.grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:18px}
+.card{border:1px solid #eee;background:white;border-radius:18px;padding:22px;display:flex;flex-direction:column;align-items:flex-start;text-align:left;color:inherit;min-height:190px}
+.card:hover{border-color:#df4361;box-shadow:0 6px 22px #00000008}
+.tag{font-size:14px;color:#b92d48;background:#fff0f3;border-radius:6px;padding:5px 9px}
+.card h2{font-size:19px;line-height:1.5;margin:15px 0 10px}
+.card p{font-size:15px;color:#777;line-height:1.7;margin:0}
+.detail-link{color:#c93150;font-size:14px;margin-top:auto;padding-top:18px}
+.empty{padding:35px;background:white;border-radius:16px;line-height:1.8}
+.more{display:block;margin:28px auto}
+footer{margin:35px 0;color:#777;font-size:14px;line-height:1.9}
+dialog{width:min(600px,92vw);border:0;border-radius:20px;padding:28px;max-height:85vh;overflow:auto}
+dialog::backdrop{background:#0007}
+.close{float:right;border:0;background:#f1f1f1;border-radius:50%;width:36px;height:36px;font-size:22px}
+dialog h2{padding-right:40px;line-height:1.5}
+dl{line-height:1.8}
+dt{font-weight:bold;margin-top:16px}
+dd{margin:4px 0;color:#666;overflow-wrap:anywhere}
+.navlink{display:inline-block;background:#df4361;color:white;text-decoration:none;padding:12px 20px;border-radius:10px;margin-top:14px}
+.related{display:block;width:100%;text-align:left;padding:13px 0;border:0;border-bottom:1px solid #eee;background:white;line-height:1.6;color:#444}
+@media(max-width:850px){.grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:500px){main{padding:28px 16px}.grid{gap:10px}.card{padding:15px;min-height:210px}.card h2{font-size:17px}.tabs{gap:8px}.tabs button{padding:10px 14px}}
+</style>
 </head>
 <body>
-  <header><span>散场以后</span> · 大世界观剧指南</header>
+<header><span>散场以后</span> · 环人广观剧指南</header>
+<main>
+<div class="eyebrow">上海 · 演艺新空间周边</div>
+<h1>一场好戏，一份周边指南</h1>
+<p class="intro">找一顿演前饭、一束花，或一个跨城观剧的落脚处。</p>
 
-  <main>
-    <div class="label">上海 · 大世界</div>
-    <h1>看一场戏，也逛一逛周边</h1>
-    <p class="intro">
-      演前吃饭、买一束花、补充随身物品，或为跨城观剧找个落脚处。
-    </p>
+<div class="controls">
+<div class="tabs" id="areas" aria-label="观剧区域">
+<button data-area="大世界" class="active" aria-pressed="true">大世界</button>
+<button data-area="亚洲大厦" aria-pressed="false">亚洲大厦</button>
+<button data-area="第一百货" aria-pressed="false">第一百货</button>
+</div>
+<div class="tabs" id="categories" aria-label="店铺类别">
+<button data-category="全部" class="active" aria-pressed="true">全部</button>
+<button data-category="餐饮" aria-pressed="false">餐饮</button>
+<button data-category="花店" aria-pressed="false">花店</button>
+<button data-category="便利店" aria-pressed="false">便利店</button>
+<button data-category="住宿" aria-pressed="false">住宿</button>
+</div>
+<input id="search" type="search" placeholder="搜索店名、地址或餐饮类型" aria-label="搜索店铺">
+</div>
 
-    <nav class="filters" aria-label="店铺分类">
-      <button class="active" data-category="全部" aria-pressed="true">全部</button>
-      <button data-category="餐饮" aria-pressed="false">餐饮</button>
-      <button data-category="花店" aria-pressed="false">花店</button>
-      <button data-category="便利店" aria-pressed="false">便利店</button>
-      <button data-category="住宿" aria-pressed="false">住宿</button>
-    </nav>
+<p id="summary" class="summary" role="status">正在读取店铺数据……</p>
+<div id="list" class="grid"></div>
+<button id="more" class="more" hidden>再看一些店铺</button>
 
-    <section class="content" aria-live="polite">
-      <h2 id="category-title">探索大世界周边</h2>
-      <p id="category-description">
-        点击上方分类，选择你需要的观剧配套。
-      </p>
-      <p>网站搭建中，真实店铺与地图将在后续接入。</p>
-    </section>
+<footer>
+目前接入大世界数据，其他区域陆续补充。<br>
+数据来自用户提供的高德POI采集结果，尚未逐店核验。营业状态、价格和营业时间以商家实际信息为准。<br>
+地图与步行距离将在核对坐标后接入。
+</footer>
+</main>
 
-    <footer>
-      GIS课程实践项目。店铺营业时间、价格及营业状态以商家实际信息为准。
-    </footer>
-  </main>
+<dialog id="detail" aria-labelledby="detail-title">
+<button class="close" id="close" aria-label="关闭详情">×</button>
+<h2 id="detail-title"></h2>
+<div id="detail-body"></div>
+</dialog>
 
-  <script>
-    const descriptions = {
-      "全部": ["探索大世界周边", "点击上方分类，选择你需要的观剧配套。"],
-      "餐饮": ["演前与散场后的餐饮", "寻找正餐、咖啡茶饮和甜品。"],
-      "花店": ["带一束花去看戏", "查看周边花店，购花与预约信息请向商家确认。"],
-      "便利店": ["观剧前的小补给", "寻找饮用水、纸巾等日常用品。"],
-      "住宿": ["跨城观剧的落脚处", "了解周边住宿位置，房价与空房以预订平台为准。"]
-    };
+<script>
+let shops=[];
+let area="大世界";
+let category="全部";
+let limit=24;
+let loaded=false;
+let failed=false;
 
-    document.querySelectorAll("[data-category]").forEach(button => {
-      button.addEventListener("click", () => {
-        document.querySelectorAll("[data-category]").forEach(item => {
-          item.classList.remove("active");
-          item.setAttribute("aria-pressed", "false");
-        });
-        button.classList.add("active");
-        button.setAttribute("aria-pressed", "true");
+const list=document.getElementById("list");
+const summary=document.getElementById("summary");
+const more=document.getElementById("more");
+const search=document.getElementById("search");
+const dialog=document.getElementById("detail");
 
-        const content = descriptions[button.dataset.category];
-        document.getElementById("category-title").textContent = content[0];
-        document.getElementById("category-description").textContent = content[1];
-      });
+function element(tag,text,className){
+  const node=document.createElement(tag);
+  if(text!==undefined) node.textContent=text;
+  if(className) node.className=className;
+  return node;
+}
+
+function filtered(){
+  const query=search.value.trim().toLowerCase();
+  return shops.filter(shop=>{
+    const p=shop.properties;
+    return (category==="全部"||p.category===category)
+      && [p.name,p.address,p.originalType].join(" ").toLowerCase().includes(query);
+  });
+}
+
+function render(){
+  list.replaceChildren();
+  more.hidden=true;
+
+  if(area!=="大世界"){
+    summary.textContent=area+"周边数据待接入";
+    list.append(element("p","这个区域的店铺尚未录入，可以先切回大世界浏览。","empty"));
+    return;
+  }
+  if(failed){
+    summary.textContent="数据读取失败";
+    list.append(element("p","请确认 dashijie-shops.geojson 与 index.html 在仓库同一层，然后刷新页面。","empty"));
+    return;
+  }
+  if(!loaded){
+    summary.textContent="正在读取店铺数据……";
+    return;
+  }
+
+  const results=filtered();
+  summary.textContent="大世界 · "+category+" · 找到 "+results.length+" 家，已显示 "+Math.min(limit,results.length)+" 家";
+
+  if(!results.length){
+    list.append(element("p","没有找到匹配店铺，试试更短的关键词或其他类别。","empty"));
+  }
+
+  results.slice(0,limit).forEach(shop=>{
+    const p=shop.properties;
+    const card=element("button",undefined,"card");
+    card.type="button";
+    card.append(
+      element("span",p.category,"tag"),
+      element("h2",p.name),
+      element("p",p.address||"地址待补充"),
+      element("span","查看店铺详情","detail-link")
+    );
+    card.addEventListener("click",()=>openDetail(shop));
+    list.append(card);
+  });
+  more.hidden=results.length<=limit;
+}
+
+function openDetail(shop){
+  const p=shop.properties;
+  document.getElementById("detail-title").textContent=p.name;
+  const body=document.getElementById("detail-body");
+  body.replaceChildren();
+
+  const dl=element("dl");
+  [
+    ["类别",p.category],
+    ["详细类型",p.originalType||"待补充"],
+    ["地址",p.address||"待补充"],
+    ["营业时间",p.openingHours||"暂未收录，请向商家确认"],
+    ["价格信息",p.price==null?"暂未收录":String(p.price)]
+  ].forEach(([label,value])=>{
+    dl.append(element("dt",label),element("dd",value));
+  });
+  body.append(dl);
+
+  const link=element("a","在高德地图搜索店铺","navlink");
+  link.href="https://uri.amap.com/search?keyword="+
+    encodeURIComponent(p.name+" "+(p.address||""))+
+    "&city=上海&view=map";
+  link.target="_blank";
+  link.rel="noopener noreferrer";
+  body.append(link);
+
+  body.append(element("h3","同类店铺，也可以看看"));
+  body.append(element("p","按同类数据顺序展示，尚未按距离或口碑排序。","muted"));
+
+  shops.filter(item=>item.properties.category===p.category
+    &&item.properties.id!==p.id).slice(0,3).forEach(item=>{
+      const button=element("button",item.properties.name,"related");
+      button.type="button";
+      button.addEventListener("click",()=>openDetail(item));
+      body.append(button);
     });
-  </script>
+
+  if(!dialog.open) dialog.showModal();
+  dialog.scrollTop=0;
+}
+
+document.querySelectorAll("[data-area]").forEach(button=>{
+  button.addEventListener("click",()=>{
+    area=button.dataset.area;
+    limit=24;
+    document.querySelectorAll("[data-area]").forEach(item=>{
+      const active=item===button;
+      item.classList.toggle("active",active);
+      item.setAttribute("aria-pressed",String(active));
+    });
+    render();
+  });
+});
+
+document.querySelectorAll("[data-category]").forEach(button=>{
+  button.addEventListener("click",()=>{
+    category=button.dataset.category;
+    limit=24;
+    document.querySelectorAll("[data-category]").forEach(item=>{
+      const active=item===button;
+      item.classList.toggle("active",active);
+      item.setAttribute("aria-pressed",String(active));
+    });
+    render();
+  });
+});
+
+search.addEventListener("input",()=>{limit=24;render()});
+more.addEventListener("click",()=>{limit+=24;render()});
+document.getElementById("close").addEventListener("click",()=>dialog.close());
+
+async function load(){
+  try{
+    const response=await fetch("./dashijie-shops.geojson");
+    if(!response.ok) throw new Error("读取失败");
+    const data=await response.json();
+    if(!Array.isArray(data.features)) throw new Error("格式错误");
+    shops=data.features.filter(item=>item.properties&&item.properties.name);
+    loaded=true;
+  }catch(error){
+    failed=true;
+  }
+  render();
+}
+load();
+</script>
 </body>
 </html>
