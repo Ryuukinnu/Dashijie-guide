@@ -1,0 +1,43 @@
+{
+  "type": "FeatureCollection",
+  "metadata": {
+    "coordinateSystem": "GCJ-02",
+    "usage": "高德地图专用坐标，非标准WGS84 GeoJSON",
+    "source": "用户提供大世界出入口.shp",
+    "alignmentStatus": "待底图核对"
+  },
+  "features": [
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "dashijie-entrance-1",
+        "name": "大世界出入口1",
+        "coordinateSystem": "GCJ-02",
+        "note": "用户提供入口点，入口开放状态及观演用途待核实"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          121.47927382820589,
+          31.227727028234177
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "dashijie-entrance-2",
+        "name": "大世界出入口2",
+        "coordinateSystem": "GCJ-02",
+        "note": "用户提供入口点，入口开放状态及观演用途待核实"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          121.4787830795907,
+          31.228440484166335
+        ]
+      }
+    }
+  ]
+}
