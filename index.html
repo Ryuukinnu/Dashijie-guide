@@ -73,7 +73,7 @@ dd{margin:4px 0;color:#666;overflow-wrap:anywhere}
 <button id="more" class="more" hidden>再看一些店铺</button>
 
 <footer>
-目前接入大世界数据，其他区域陆续补充。<br>
+目前接入大世界、亚洲大厦数据，第一百货陆续补充。<br>
 数据来自用户提供的高德POI采集结果，尚未逐店核验。营业状态、价格和营业时间以商家实际信息为准。<br>
 步行范围来自GIS路网分析，含20米道路外扩；按服务区面筛选，不代表逐店精确步行距离。
 </footer>
@@ -87,6 +87,9 @@ dd{margin:4px 0;color:#666;overflow-wrap:anywhere}
 
 <script>
 let shops=[];
+const regionShops={};
+const regionErrors={};
+const supportedAreas=["大世界","亚洲大厦"];
 let area="大世界";
 let category="全部";
 let limit=24;
@@ -126,7 +129,7 @@ function polygonContains(point, rings) {
     && !rings.slice(1).some(ring=>ringContains(point,ring));
 }
 function withinWalkingArea(shop) {
-  if (!walkingDistance || area!=="大世界") return true;
+  if (!walkingDistance) return true;
   const point=shop.geometry?.coordinates;
   if (shop.geometry?.type!=="Point" || !Array.isArray(point)
       || !point.slice(0,2).every(Number.isFinite)) return false;
@@ -141,7 +144,7 @@ function filtered(){
   const query=search.value.trim().toLowerCase();
   return shops.filter(shop=>{
     const p=shop.properties;
-    return withinWalkingArea(shop) && (category==="全部"||p.category===category)
+    return shop.properties.area===area && withinWalkingArea(shop) && (category==="全部"||p.category===category)
       && [p.name,p.address,p.originalType].join(" ").toLowerCase().includes(query);
   });
 }
@@ -150,14 +153,14 @@ function render(){
   list.replaceChildren();
   more.hidden=true;
 
-  if(area!=="大世界"){
+  if(!supportedAreas.includes(area)){
     summary.textContent=area+"周边数据待接入";
     list.append(element("p","这个区域的店铺尚未录入，可以先切回大世界浏览。","empty"));
     return;
   }
-  if(failed){
+  if(regionErrors[area]){
     summary.textContent="数据读取失败";
-    list.append(element("p","请确认 dashijie-shops.geojson 与 index.html 在仓库同一层，然后刷新页面。","empty"));
+    list.append(element("p","请确认当前区域的店铺数据文件与 index.html 在仓库同一层，然后刷新页面。","empty"));
     return;
   }
   if(!loaded){
@@ -166,7 +169,7 @@ function render(){
   }
 
   const results=filtered();
-  summary.textContent="大世界 · "+(walkingDistance ? walkingDistance+"米服务区内 · " : "")+category+" · 找到 "+results.length+" 家，已显示 "+Math.min(limit,results.length)+" 家";
+  summary.textContent=area+" · "+(walkingDistance ? walkingDistance+"米服务区内 · " : "")+category+" · 找到 "+results.length+" 家，已显示 "+Math.min(limit,results.length)+" 家";
 
   if(!results.length){
     list.append(element("p","没有找到匹配店铺，试试更短的关键词或其他类别。","empty"));
@@ -200,7 +203,8 @@ function openDetail(shop){
     ["详细类型",p.originalType||"待补充"],
     ["地址",p.address||"待补充"],
     ["营业时间",p.openingHours||"暂未收录，请向商家确认"],
-    ["价格信息",p.price==null?"暂未收录":String(p.price)]
+    ["价格信息（原表，供参考）",p.price==null?"暂未收录":String(p.price)],
+    ["核验备注",p.verificationNote||"尚未逐店核验，营业情况请向商家确认"]
   ].forEach(([label,value])=>{
     dl.append(element("dt",label),element("dd",value));
   });
@@ -217,7 +221,7 @@ function openDetail(shop){
   body.append(element("h3","同类店铺，也可以看看"));
   body.append(element("p","按同类数据顺序展示，尚未按距离或口碑排序。","muted"));
 
-  shops.filter(item=>withinWalkingArea(item) && item.properties.category===p.category
+  shops.filter(item=>item.properties.area===area && withinWalkingArea(item) && item.properties.category===p.category
     &&item.properties.id!==p.id).slice(0,3).forEach(item=>{
       const button=element("button",item.properties.name,"related");
       button.type="button";
@@ -232,6 +236,7 @@ function openDetail(shop){
 document.querySelectorAll("[data-area]").forEach(button=>{
   button.addEventListener("click",()=>{
     area=button.dataset.area;
+    walkingDistance=0;walkingFeatures=[];
     limit=24;
     document.querySelectorAll("[data-area]").forEach(item=>{
       const active=item===button;
@@ -260,394 +265,104 @@ more.addEventListener("click",()=>{limit+=24;render()});
 document.getElementById("close").addEventListener("click",()=>dialog.close());
 
 async function load(){
-  try{
-    const response=await fetch("./dashijie-shops.geojson");
-    if(!response.ok) throw new Error("读取失败");
-    const data=await response.json();
-    if(!Array.isArray(data.features)) throw new Error("格式错误");
-    shops=data.features.filter(item=>item.properties&&item.properties.name);
-    loaded=true;
-  }catch(error){
-    failed=true;
-  }
-  render();
+  await Promise.all(supportedAreas.map(async name=>{
+    try {
+      const file=name==="大世界"?"dashijie-shops.geojson":"asia-shops.geojson";
+      const response=await fetch("./"+file);
+      if(!response.ok) throw Error(file);
+      const data=await response.json();
+      if(!Array.isArray(data.features)) throw Error("格式错误");
+      regionShops[name]=data.features.filter(f=>f.properties?.name).map(f=>({...f,properties:{...f.properties,area:name}}));
+    } catch(error) {regionErrors[name]=true;regionShops[name]=[];}
+  }));
+  shops=Object.values(regionShops).flat();loaded=true;render();
 }
 load();
 </script>
 <!-- 周边店铺地图 -->
 <script src="https://webapi.amap.com/loader.js"></script>
 <script>
-window._AMapSecurityConfig = {
-  securityJsCode: "7e10633c69c9e2f1e0036ef6a3609b70"
-};
-
-const mapSection = document.createElement("section");
-mapSection.style.margin = "24px 0";
-mapSection.innerHTML = `
-  <h2>周边地图</h2>
-  <p id="map-status" class="muted" role="status">
-    正在加载地图……
-  </p>
-  <div id="shop-map"
-       aria-label="周边店铺地图"
-       style="height:440px;width:100%;border-radius:18px;
-              overflow:hidden;background:#eee"></div>
-`;
+window._AMapSecurityConfig={securityJsCode:"7e10633c69c9e2f1e0036ef6a3609b70"};
+const mapSection=element("section");mapSection.style.margin="24px 0";
+mapSection.innerHTML='<h2>周边地图</h2><p id="map-status" class="muted" role="status">正在加载地图……</p><div id="shop-map" aria-label="周边店铺地图" style="height:440px;width:100%;border-radius:18px;overflow:hidden;background:#eee"></div>';
 document.querySelector(".controls").after(mapSection);
-
-let guideMap;
-let guideAMap;
-let guideMarkers = [];
-
-function updateGuideMap() {
-  if (!guideMap || !guideAMap) return;
-
-  guideMap.remove(guideMarkers);
-  guideMarkers = [];
-
-  const status = document.getElementById("map-status");
-
-  if (area !== "大世界") {
-    status.textContent = area + "数据待接入，请先切回大世界。";
-    return;
-  }
-
-  if (failed) {
-    status.textContent = "店铺数据读取失败，请刷新页面。";
-    return;
-  }
-
-  if (!loaded) {
-    status.textContent = "地图已加载，正在等待店铺数据……";
-    return;
-  }
-
-  const results = filtered();
-
-  // 与列表一致，只展示当前已显示的店铺，避免点位过于密集。
-  results.slice(0, limit).forEach(shop => {
-    const coordinates = shop.geometry?.coordinates;
-    if (!Array.isArray(coordinates)) return;
-
-    const longitude = Number(coordinates[0]);
-    const latitude = Number(coordinates[1]);
-    if (!Number.isFinite(longitude) ||
-        !Number.isFinite(latitude)) return;
-
-    const marker = new guideAMap.Marker({
-      position: [longitude, latitude],
-      title: shop.properties.name
-    });
-
-    marker.on("click", () => openDetail(shop));
-    guideMarkers.push(marker);
+const mapButtons=element("div",undefined,"tabs");mapButtons.style.marginTop="18px";
+const buildingButton=element("button","查看建筑","more"),entranceButton=element("button","查看出入口","more");
+for(const b of [buildingButton,entranceButton]){b.type="button";b.style.margin="0";mapButtons.append(b);}mapSection.append(mapButtons);
+const panel=element("div");panel.style.margin="20px 0";
+const walkingTitle=element("p"),walkingControls=element("div",undefined,"tabs"),walkingNote=element("p",undefined,"muted");
+walkingTitle.style.fontWeight="bold";panel.append(walkingTitle,walkingControls,walkingNote);mapSection.append(panel);
+let guideMap,guideAMap,guideMarkers=[],siteOverlays=[],buildingOverlays=[],entranceOverlays=[],serviceOverlays=[],overlayArea=null;
+const spatialData={};
+function polygonOverlays(features,style){
+  return features.flatMap(f=>{
+    const g=f.geometry,paths=g.type==="Polygon"?[g.coordinates]:g.type==="MultiPolygon"?g.coordinates:[];
+    return paths.map(path=>new guideAMap.Polygon({path,...style}));
   });
-
-  guideMap.add(guideMarkers);
-
-  if (guideMarkers.length && !walkingDistance) {
-    guideMap.setFitView(guideMarkers);
-  }
-
-  status.textContent =
-    "地图展示当前列表中的 " + guideMarkers.length +
-    " 家店铺，点击标记查看详情。坐标位置待实地核对。";
 }
-
-// 每次搜索、切换类别或加载更多时，同步更新地图。
-const renderWithoutMap = render;
-render = function () {
-  renderWithoutMap();
-  updateGuideMap();
-};
-
-AMapLoader.load({
-  key: "565a133f9f77facadae1c9cc99f37916",
-  version: "2.0",
-  plugins: ["AMap.Scale", "AMap.ToolBar"]
-}).then(AMap => {
-  guideAMap = AMap;
-  guideMap = new AMap.Map("shop-map", {
-    zoom: 14,
-    center: [121.48, 31.23],
-    viewMode: "2D"
+function updateSiteOverlays(){
+  if(!guideMap)return;
+  if(overlayArea===area)return;
+  guideMap.remove([...siteOverlays,...serviceOverlays]);siteOverlays=[];serviceOverlays=[];buildingOverlays=[];entranceOverlays=[];
+  overlayArea=area;
+  const data=spatialData[area];
+  walkingTitle.textContent="从"+area+"入口出发的步行距离范围";
+  buildingButton.textContent="查看"+area+"建筑";entranceButton.textContent="查看"+area+"出入口";
+  buildingButton.disabled=!data?.building;entranceButton.disabled=!data?.entrances;
+  walkingControls.querySelectorAll("button").forEach(b=>{b.disabled=Number(b.dataset.distance)>0&&!data?.service;b.classList.toggle("active",Number(b.dataset.distance)===0);b.setAttribute("aria-pressed",String(Number(b.dataset.distance)===0));});
+  walkingNote.textContent=supportedAreas.includes(area)?(data?.service?"选择步行距离，可同步筛选地图和列表。范围含20米道路外扩，不代表逐店精确步行距离。":"步行范围正在加载；若加载失败，请检查服务区文件是否上传。"):"该区域数据待接入。";
+  if(!data)return;
+  buildingOverlays=polygonOverlays(data.building?.features||[],{strokeColor:"#df4361",strokeWeight:3,fillColor:"#df4361",fillOpacity:0.25,zIndex:40});
+  entranceOverlays=(data.entrances?.features||[]).filter(f=>f.geometry.type==="Point").map((f,i)=>{
+    const label=element("div","入口"+(i+1));label.style.cssText="background:#087f5b;color:white;padding:7px 10px;border:2px solid white;border-radius:8px;white-space:nowrap;box-shadow:0 2px 8px #0003";
+    const marker=new guideAMap.Marker({position:f.geometry.coordinates,content:label,anchor:"bottom-center",title:area+"入口"+(i+1),zIndex:200});
+    const name=area;
+    marker.on("click",()=>{const content=element("div");content.append(element("strong",name+"入口"+(i+1)),element("p","用户提供的入口位置，观演用途及开放情况待核实。"));new guideAMap.InfoWindow({content,offset:new guideAMap.Pixel(0,-35)}).open(guideMap,f.geometry.coordinates);});return marker;
   });
-
-  guideMap.addControl(new AMap.Scale());
-  guideMap.addControl(new AMap.ToolBar());
-  // 大世界步行服务区
-fetch("./dashijie-service-areas-amap.json?v=trim20", {cache: "no-cache"})
-  .then(response => {
-    if (!response.ok) throw new Error("服务区文件读取失败");
-    return response.json();
-  })
-  .then(data => {
-    let servicePolygons = [];
-
-    const panel = document.createElement("div");
-    panel.style.margin = "20px 0";
-
-    const title = document.createElement("p");
-    title.textContent = "从大世界入口出发的步行距离范围";
-    title.style.fontWeight = "bold";
-
-    const controls = document.createElement("div");
-    controls.className = "tabs";
-
-    const note = document.createElement("p");
-    note.className = "muted";
-    note.textContent =
-      "按GIS步行路网分析生成，为累计距离范围，并非直线半径或步行分钟数。";
-
-    panel.append(title, controls, note);
-    document.getElementById("shop-map").after(panel);
-
-    function clearServiceArea() {
-      guideMap.remove(servicePolygons);
-      servicePolygons = [];
-    }
-
-    [0, 300, 500, 1000].forEach(distance => {
-      const button = document.createElement("button");
-      button.type = "button";
-      button.textContent = distance === 0
-        ? "隐藏范围"
-        : distance + "米";
-      button.setAttribute(
-        "aria-pressed",
-        String(distance === 0)
-      );
-      if (distance === 0) button.classList.add("active");
-
-      button.addEventListener("click", () => {
-        clearServiceArea();
-
-        controls.querySelectorAll("button").forEach(item => {
-          const selected = item === button;
-          item.classList.toggle("active", selected);
-          item.setAttribute("aria-pressed", String(selected));
-        });
-
-        if (distance === 0) {
-          walkingDistance=0;
-          walkingFeatures=[];
-          limit=24;
-          note.textContent="已取消步行范围筛选，显示符合类别和搜索条件的全部店铺。";
-          render();
-          return;
-        }
-
-        if (area !== "大世界") {
-          note.textContent = "请先切回大世界，再查看步行范围。";
-          return;
-        }
-
-        const features = data.features.filter(feature =>
-          Number(feature.properties.ToBreak) === distance
-        );
-
-        walkingDistance=distance;
-        walkingFeatures=features;
-        limit=24;
-        render();
-
-        features.forEach(feature => {
-          const geometry = feature.geometry;
-          const paths = geometry.type === "Polygon"
-            ? [geometry.coordinates]
-            : geometry.type === "MultiPolygon"
-              ? geometry.coordinates
-              : [];
-
-          paths.forEach(path => {
-            servicePolygons.push(new AMap.Polygon({
-              path,
-              strokeColor: "#3285ad",
-              strokeWeight: 2,
-              fillColor: "#51b5dc",
-              fillOpacity: 0.18,
-              zIndex: 10,
-              bubble: true
-            }));
-          });
-        });
-
-        guideMap.add(servicePolygons);
-
-        if (servicePolygons.length) {
-          guideMap.setFitView(servicePolygons);
-          note.textContent =
-            distance +
-            "米累计步行服务区：地图和列表仅显示面内店铺，可继续按类别和关键词筛选。范围含20米道路外扩，不代表逐店精确步行距离。";
-        } else {
-          note.textContent = "没有找到这一距离的服务区数据。";
-        }
-      });
-
-      controls.append(button);
-    });
-
-    // 切到其他区域时，隐藏大世界的服务区
-    document.querySelectorAll("[data-area]").forEach(button => {
-      button.addEventListener("click", () => {
-        clearServiceArea();
-        walkingDistance=0;
-        walkingFeatures=[];
-        limit=24;
-        render();
-        controls.querySelectorAll("button").forEach((item, index) => {
-          item.classList.toggle("active", index === 0);
-          item.setAttribute("aria-pressed", String(index === 0));
-        });
-        note.textContent =
-          "按GIS步行路网分析生成，为累计距离范围，并非直线半径或步行分钟数。";
-      });
-    });
-  })
-  .catch(error => {
-    console.error("服务区加载失败：", error);
-    const message = document.createElement("p");
-    message.className = "muted";
-    message.textContent =
-      "步行服务区加载失败，请检查服务区文件名及部署状态。";
-    document.getElementById("shop-map").after(message);
+  siteOverlays=[...buildingOverlays,...entranceOverlays];guideMap.add(siteOverlays);
+}
+function updateGuideMap(){
+  if(!guideMap)return;
+  updateSiteOverlays();guideMap.remove(guideMarkers);guideMarkers=[];
+  const status=document.getElementById("map-status");
+  if(!supportedAreas.includes(area)){status.textContent=area+"数据待接入。";return;}
+  if(regionErrors[area]){status.textContent=area+"店铺数据读取失败，请检查文件是否上传。";return;}
+  if(!loaded){status.textContent="正在读取店铺数据……";return;}
+  filtered().slice(0,limit).forEach(shop=>{
+    const coords=shop.geometry?.coordinates;
+    if(shop.geometry?.type!=="Point"||!Array.isArray(coords)||!coords.every(Number.isFinite))return;
+    const marker=new guideAMap.Marker({position:coords,title:shop.properties.name});marker.on("click",()=>openDetail(shop));guideMarkers.push(marker);
   });
-  // 加载大世界出入口
-fetch("./dashijie-entrances-amap.json")
-  .then(response => {
-    if (!response.ok) throw new Error("入口文件读取失败");
-    return response.json();
-  })
-  .then(data => {
-    const entranceMarkers = [];
-
-    data.features.forEach((feature, index) => {
-      if (feature.geometry?.type !== "Point") return;
-
-      const name = "大世界出入口" + (index + 1);
-
-      const markerContent = document.createElement("div");
-      markerContent.textContent = "入口" + (index + 1);
-      markerContent.style.cssText = `
-        background:#087f5b;
-        color:white;
-        padding:7px 10px;
-        border:2px solid white;
-        border-radius:8px;
-        font-size:14px;
-        white-space:nowrap;
-        box-shadow:0 2px 8px #0003;
-        cursor:pointer;
-      `;
-
-      const marker = new AMap.Marker({
-        position: feature.geometry.coordinates,
-        content: markerContent,
-        anchor: "bottom-center",
-        title: name,
-        zIndex: 200
-      });
-
-      marker.on("click", () => {
-        const content = document.createElement("div");
-        const title = document.createElement("strong");
-        title.textContent = name;
-
-        const note = document.createElement("p");
-        note.textContent =
-          "用户提供的入口位置，观演用途及开放情况待核实。";
-
-        content.append(title, note);
-
-        new AMap.InfoWindow({
-          content,
-          offset: new AMap.Pixel(0, -35)
-        }).open(guideMap, feature.geometry.coordinates);
-      });
-
-      entranceMarkers.push(marker);
-    });
-
-    guideMap.add(entranceMarkers);
-
-    const button = document.createElement("button");
-    button.textContent = "查看大世界出入口";
-    button.className = "more";
-    button.type = "button";
-
-    button.addEventListener("click", () => {
-      if (entranceMarkers.length) {
-        guideMap.setFitView(entranceMarkers);
-      }
-    });
-
-    document.getElementById("shop-map").after(button);
-  })
-  .catch(error => {
-    console.error("入口加载失败：", error);
-    const message = document.createElement("p");
-    message.className = "muted";
-    message.textContent =
-      "入口加载失败，请检查 dashijie-entrances-amap.json 文件。";
-    document.getElementById("shop-map").after(message);
+  guideMap.add(guideMarkers);
+  if(!walkingDistance&&guideMarkers.length)guideMap.setFitView(guideMarkers);
+  status.textContent=area+" · 地图展示当前列表中的 "+guideMarkers.length+" 家店铺，点击标记查看详情。坐标位置待实地核对。";
+}
+for(const distance of [0,300,500,1000]){
+  const button=element("button",distance?distance+"米":"隐藏范围");button.type="button";button.dataset.distance=String(distance);walkingControls.append(button);
+  button.addEventListener("click",()=>{
+    if(!guideMap)return;
+    const features=distance?(spatialData[area]?.service?.features||[]).filter(f=>Number(f.properties.ToBreak)===distance):[];
+    if(distance&&!features.length){walkingNote.textContent="这一距离的服务区尚未加载成功。";return;}
+    guideMap.remove(serviceOverlays);serviceOverlays=[];walkingDistance=distance;walkingFeatures=features;limit=24;render();
+    serviceOverlays=polygonOverlays(features,{strokeColor:"#3285ad",strokeWeight:2,fillColor:"#51b5dc",fillOpacity:0.18,zIndex:10,bubble:true});guideMap.add(serviceOverlays);
+    walkingControls.querySelectorAll("button").forEach(b=>{b.classList.toggle("active",b===button);b.setAttribute("aria-pressed",String(b===button));});
+    walkingNote.textContent=distance?distance+"米累计步行服务区内找到 "+filtered().length+" 家匹配店铺。范围含20米道路外扩，不代表逐店精确步行距离。":"已取消距离筛选，显示符合类别和搜索条件的全部店铺。";
+    if(serviceOverlays.length)guideMap.setFitView(serviceOverlays);
   });
-  // 读取大世界建筑轮廓
-fetch("./dashijie-building-amap.json")
-  .then(response => {
-    if (!response.ok) {
-      throw new Error("建筑文件读取失败");
-    }
-    return response.json();
-  })
-  .then(data => {
-    const buildingPolygons = [];
-
-    data.features.forEach(feature => {
-      if (feature.geometry.type !== "Polygon") return;
-
-      const polygon = new AMap.Polygon({
-        path: feature.geometry.coordinates,
-        strokeColor: "#df4361",
-        strokeWeight: 3,
-        fillColor: "#df4361",
-        fillOpacity: 0.25,
-        zIndex: 40
-      });
-
-      buildingPolygons.push(polygon);
-    });
-
-    guideMap.add(buildingPolygons);
-
-    // 增加一个按钮，方便随时找到大世界
-    const locateButton = document.createElement("button");
-    locateButton.textContent = "查看大世界建筑";
-    locateButton.className = "more";
-    locateButton.type = "button";
-
-    locateButton.addEventListener("click", () => {
-      if (buildingPolygons.length) {
-        guideMap.setFitView(buildingPolygons);
-      }
-    });
-
-    document.getElementById("shop-map").after(locateButton);
-  })
-  .catch(error => {
-    console.error("建筑轮廓加载失败：", error);
-
-    const message = document.createElement("p");
-    message.className = "muted";
-    message.textContent =
-      "建筑轮廓加载失败，请检查仓库中的文件名。";
-    document.getElementById("shop-map").after(message);
-  });
-  updateGuideMap();
-}).catch(error => {
-  document.getElementById("map-status").textContent =
-    "地图加载失败，请检查Key、安全密钥及域名设置。店铺列表仍可使用。";
-  console.error("地图加载失败：", error);
-});
+}
+buildingButton.addEventListener("click",()=>{if(buildingOverlays.length)guideMap.setFitView(buildingOverlays);});
+entranceButton.addEventListener("click",()=>{if(entranceOverlays.length)guideMap.setFitView(entranceOverlays);});
+const renderWithoutMap=render;render=function(){renderWithoutMap();updateGuideMap();if(walkingDistance)walkingNote.textContent=walkingDistance+"米累计步行服务区内找到 "+filtered().length+" 家匹配店铺。范围含20米道路外扩，不代表逐店精确步行距离。";};
+AMapLoader.load({key:"565a133f9f77facadae1c9cc99f37916",version:"2.0",plugins:["AMap.Scale","AMap.ToolBar"]}).then(async AMap=>{
+  guideAMap=AMap;guideMap=new AMap.Map("shop-map",{zoom:14,center:[121.48,31.23],viewMode:"2D"});guideMap.addControl(new AMap.Scale());guideMap.addControl(new AMap.ToolBar());updateGuideMap();
+  await Promise.all(supportedAreas.map(async name=>{
+    const prefix=name==="大世界"?"dashijie":"asia";spatialData[name]={};
+    await Promise.all([["building","building"],["entrances","entrances"],["service","service-areas"]].map(async([kind,suffix])=>{
+      try{const response=await fetch("./"+prefix+"-"+suffix+"-amap.json?v=asia1",{cache:"no-cache"});if(!response.ok)throw Error(suffix);const data=await response.json();if(!Array.isArray(data.features))throw Error("格式错误");spatialData[name][kind]=data;}catch(error){console.error(name+suffix+"读取失败",error);}
+    }));
+    if(area===name){overlayArea=null;updateGuideMap();}
+  }));
+}).catch(error=>{document.getElementById("map-status").textContent="地图加载失败，请刷新线上网页并检查高德配置。";console.error(error);});
 </script>
 </body>
 </html>
