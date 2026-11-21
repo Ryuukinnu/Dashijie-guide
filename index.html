@@ -344,6 +344,127 @@ AMapLoader.load({
 
   guideMap.addControl(new AMap.Scale());
   guideMap.addControl(new AMap.ToolBar());
+  // 大世界步行服务区
+fetch("./dashijie-service-areas-amap.json")
+  .then(response => {
+    if (!response.ok) throw new Error("服务区文件读取失败");
+    return response.json();
+  })
+  .then(data => {
+    let servicePolygons = [];
+
+    const panel = document.createElement("div");
+    panel.style.margin = "20px 0";
+
+    const title = document.createElement("p");
+    title.textContent = "从大世界入口出发的步行距离范围";
+    title.style.fontWeight = "bold";
+
+    const controls = document.createElement("div");
+    controls.className = "tabs";
+
+    const note = document.createElement("p");
+    note.className = "muted";
+    note.textContent =
+      "按GIS步行路网分析生成，为累计距离范围，并非直线半径或步行分钟数。";
+
+    panel.append(title, controls, note);
+    document.getElementById("shop-map").after(panel);
+
+    function clearServiceArea() {
+      guideMap.remove(servicePolygons);
+      servicePolygons = [];
+    }
+
+    [0, 300, 500, 1000].forEach(distance => {
+      const button = document.createElement("button");
+      button.type = "button";
+      button.textContent = distance === 0
+        ? "隐藏范围"
+        : distance + "米";
+      button.setAttribute(
+        "aria-pressed",
+        String(distance === 0)
+      );
+      if (distance === 0) button.classList.add("active");
+
+      button.addEventListener("click", () => {
+        clearServiceArea();
+
+        controls.querySelectorAll("button").forEach(item => {
+          const selected = item === button;
+          item.classList.toggle("active", selected);
+          item.setAttribute("aria-pressed", String(selected));
+        });
+
+        if (distance === 0) return;
+
+        if (area !== "大世界") {
+          note.textContent = "请先切回大世界，再查看步行范围。";
+          return;
+        }
+
+        const features = data.features.filter(feature =>
+          Number(feature.properties.ToBreak) === distance
+        );
+
+        features.forEach(feature => {
+          const geometry = feature.geometry;
+          const paths = geometry.type === "Polygon"
+            ? [geometry.coordinates]
+            : geometry.type === "MultiPolygon"
+              ? geometry.coordinates
+              : [];
+
+          paths.forEach(path => {
+            servicePolygons.push(new AMap.Polygon({
+              path,
+              strokeColor: "#3285ad",
+              strokeWeight: 2,
+              fillColor: "#51b5dc",
+              fillOpacity: 0.18,
+              zIndex: 10,
+              bubble: true
+            }));
+          });
+        });
+
+        guideMap.add(servicePolygons);
+
+        if (servicePolygons.length) {
+          guideMap.setFitView(servicePolygons);
+          note.textContent =
+            distance +
+            "米累计步行距离范围。此功能仅展示范围，暂不筛选店铺。";
+        } else {
+          note.textContent = "没有找到这一距离的服务区数据。";
+        }
+      });
+
+      controls.append(button);
+    });
+
+    // 切到其他区域时，隐藏大世界的服务区
+    document.querySelectorAll("[data-area]").forEach(button => {
+      button.addEventListener("click", () => {
+        clearServiceArea();
+        controls.querySelectorAll("button").forEach((item, index) => {
+          item.classList.toggle("active", index === 0);
+          item.setAttribute("aria-pressed", String(index === 0));
+        });
+        note.textContent =
+          "按GIS步行路网分析生成，为累计距离范围，并非直线半径或步行分钟数。";
+      });
+    });
+  })
+  .catch(error => {
+    console.error("服务区加载失败：", error);
+    const message = document.createElement("p");
+    message.className = "muted";
+    message.textContent =
+      "步行服务区加载失败，请检查服务区文件名及部署状态。";
+    document.getElementById("shop-map").after(message);
+  });
   // 加载大世界出入口
 fetch("./dashijie-entrances-amap.json")
   .then(response => {
