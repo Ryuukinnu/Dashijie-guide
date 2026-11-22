@@ -345,7 +345,13 @@ for(const distance of [0,300,500,1000]){
     const features=distance?(spatialData[area]?.service?.features||[]).filter(f=>Number(f.properties.ToBreak)===distance):[];
     if(distance&&!features.length){walkingNote.textContent="这一距离的服务区尚未加载成功。";return;}
     guideMap.remove(serviceOverlays);serviceOverlays=[];walkingDistance=distance;walkingFeatures=features;limit=24;render();
-    serviceOverlays=polygonOverlays(features,{strokeColor:"#3285ad",strokeWeight:2,fillColor:"#51b5dc",fillOpacity:0.18,zIndex:10,bubble:true});guideMap.add(serviceOverlays);
+    const areaStyle = {strokeColor:"#3285ad",strokeWeight:2,fillColor:"#51b5dc",fillOpacity:0.18,zIndex:10,bubble:true};
+    if (area === "亚洲大厦") {
+      areaStyle.strokeOpacity = 0;
+      areaStyle.fillOpacity = 0.4;
+    }
+    serviceOverlays = polygonOverlays(features,areaStyle);
+    guideMap.add(serviceOverlays);
     walkingControls.querySelectorAll("button").forEach(b=>{b.classList.toggle("active",b===button);b.setAttribute("aria-pressed",String(b===button));});
     walkingNote.textContent=distance?distance+"米累计步行服务区内找到 "+filtered().length+" 家匹配店铺。按服务区面筛选，逐店步行距离以实际路线为准。":"已取消距离筛选，显示符合类别和搜索条件的全部店铺。";
     if(serviceOverlays.length)guideMap.setFitView(serviceOverlays);
