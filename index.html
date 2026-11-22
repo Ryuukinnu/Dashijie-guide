@@ -346,10 +346,6 @@ for(const distance of [0,300,500,1000]){
     if(distance&&!features.length){walkingNote.textContent="这一距离的服务区尚未加载成功。";return;}
     guideMap.remove(serviceOverlays);serviceOverlays=[];walkingDistance=distance;walkingFeatures=features;limit=24;render();
     const areaStyle = {strokeColor:"#3285ad",strokeWeight:2,fillColor:"#51b5dc",fillOpacity:0.18,zIndex:10,bubble:true};
-    if (area === "亚洲大厦") {
-      areaStyle.strokeOpacity = 0;
-      areaStyle.fillOpacity = 0.4;
-    }
     serviceOverlays = polygonOverlays(features,areaStyle);
     guideMap.add(serviceOverlays);
     walkingControls.querySelectorAll("button").forEach(b=>{b.classList.toggle("active",b===button);b.setAttribute("aria-pressed",String(b===button));});
@@ -365,7 +361,7 @@ AMapLoader.load({key:"565a133f9f77facadae1c9cc99f37916",version:"2.0",plugins:["
   await Promise.all(supportedAreas.map(async name=>{
     const prefix=areaPrefixes[name];spatialData[name]={};
     await Promise.all([["building","building"],["entrances","entrances"],["service","service-areas"]].map(async([kind,suffix])=>{
-      try{const response=await fetch("./"+prefix+"-"+suffix+"-amap.json?v=asia1",{cache:"no-cache"});if(!response.ok)throw Error(suffix);const data=await response.json();if(!Array.isArray(data.features))throw Error("格式错误");spatialData[name][kind]=data;}catch(error){console.error(name+suffix+"读取失败",error);}
+      try{const response=await fetch("./"+prefix+"-"+suffix+"-amap.json?v="+(prefix==="asia" && kind==="service" ? "asia-block-1" : "asia1"),{cache:"no-cache"});if(!response.ok)throw Error(suffix);const data=await response.json();if(!Array.isArray(data.features))throw Error("格式错误");spatialData[name][kind]=data;}catch(error){console.error(name+suffix+"读取失败",error);}
     }));
     if(area===name){overlayArea=null;updateGuideMap();}
   }));
