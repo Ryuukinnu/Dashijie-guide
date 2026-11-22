@@ -73,9 +73,9 @@ dd{margin:4px 0;color:#666;overflow-wrap:anywhere}
 <button id="more" class="more" hidden>再看一些店铺</button>
 
 <footer>
-目前接入大世界、亚洲大厦数据，第一百货陆续补充。<br>
-数据来自用户提供的高德POI采集结果，尚未逐店核验。营业状态、价格和营业时间以商家实际信息为准。<br>
-步行范围来自GIS路网分析，含20米道路外扩；按服务区面筛选，不代表逐店精确步行距离。
+目前接入大世界、亚洲大厦和第一百货。<br>
+数据来自用户提供的店铺采集资料，尚未逐店核验。营业状态、价格和营业时间以商家实际信息为准。<br>
+步行范围来自GIS路网分析；按服务区面筛选，不代表逐店精确步行距离。
 </footer>
 </main>
 
@@ -89,7 +89,8 @@ dd{margin:4px 0;color:#666;overflow-wrap:anywhere}
 let shops=[];
 const regionShops={};
 const regionErrors={};
-const supportedAreas=["大世界","亚洲大厦"];
+const areaPrefixes={"大世界":"dashijie","亚洲大厦":"asia","第一百货":"firstdept"};
+const supportedAreas=Object.keys(areaPrefixes);
 let area="大世界";
 let category="全部";
 let limit=24;
@@ -267,7 +268,7 @@ document.getElementById("close").addEventListener("click",()=>dialog.close());
 async function load(){
   await Promise.all(supportedAreas.map(async name=>{
     try {
-      const file=name==="大世界"?"dashijie-shops.geojson":"asia-shops.geojson";
+      const file=areaPrefixes[name]+"-shops.geojson";
       const response=await fetch("./"+file);
       if(!response.ok) throw Error(file);
       const data=await response.json();
@@ -310,7 +311,7 @@ function updateSiteOverlays(){
   buildingButton.textContent="查看"+area+"建筑";entranceButton.textContent="查看"+area+"出入口";
   buildingButton.disabled=!data?.building;entranceButton.disabled=!data?.entrances;
   walkingControls.querySelectorAll("button").forEach(b=>{b.disabled=Number(b.dataset.distance)>0&&!data?.service;b.classList.toggle("active",Number(b.dataset.distance)===0);b.setAttribute("aria-pressed",String(Number(b.dataset.distance)===0));});
-  walkingNote.textContent=supportedAreas.includes(area)?(data?.service?"选择步行距离，可同步筛选地图和列表。范围含20米道路外扩，不代表逐店精确步行距离。":"步行范围正在加载；若加载失败，请检查服务区文件是否上传。"):"该区域数据待接入。";
+  walkingNote.textContent=supportedAreas.includes(area)?(data?.service?"选择步行距离，可同步筛选地图和列表。按服务区面筛选，逐店步行距离以实际路线为准。":"步行范围正在加载；若加载失败，请检查服务区文件是否上传。"):"该区域数据待接入。";
   if(!data)return;
   buildingOverlays=polygonOverlays(data.building?.features||[],{strokeColor:"#df4361",strokeWeight:3,fillColor:"#df4361",fillOpacity:0.25,zIndex:40});
   entranceOverlays=(data.entrances?.features||[]).filter(f=>f.geometry.type==="Point").map((f,i)=>{
@@ -346,17 +347,17 @@ for(const distance of [0,300,500,1000]){
     guideMap.remove(serviceOverlays);serviceOverlays=[];walkingDistance=distance;walkingFeatures=features;limit=24;render();
     serviceOverlays=polygonOverlays(features,{strokeColor:"#3285ad",strokeWeight:2,fillColor:"#51b5dc",fillOpacity:0.18,zIndex:10,bubble:true});guideMap.add(serviceOverlays);
     walkingControls.querySelectorAll("button").forEach(b=>{b.classList.toggle("active",b===button);b.setAttribute("aria-pressed",String(b===button));});
-    walkingNote.textContent=distance?distance+"米累计步行服务区内找到 "+filtered().length+" 家匹配店铺。范围含20米道路外扩，不代表逐店精确步行距离。":"已取消距离筛选，显示符合类别和搜索条件的全部店铺。";
+    walkingNote.textContent=distance?distance+"米累计步行服务区内找到 "+filtered().length+" 家匹配店铺。按服务区面筛选，逐店步行距离以实际路线为准。":"已取消距离筛选，显示符合类别和搜索条件的全部店铺。";
     if(serviceOverlays.length)guideMap.setFitView(serviceOverlays);
   });
 }
 buildingButton.addEventListener("click",()=>{if(buildingOverlays.length)guideMap.setFitView(buildingOverlays);});
 entranceButton.addEventListener("click",()=>{if(entranceOverlays.length)guideMap.setFitView(entranceOverlays);});
-const renderWithoutMap=render;render=function(){renderWithoutMap();updateGuideMap();if(walkingDistance)walkingNote.textContent=walkingDistance+"米累计步行服务区内找到 "+filtered().length+" 家匹配店铺。范围含20米道路外扩，不代表逐店精确步行距离。";};
+const renderWithoutMap=render;render=function(){renderWithoutMap();updateGuideMap();if(walkingDistance)walkingNote.textContent=walkingDistance+"米累计步行服务区内找到 "+filtered().length+" 家匹配店铺。按服务区面筛选，逐店步行距离以实际路线为准。";};
 AMapLoader.load({key:"565a133f9f77facadae1c9cc99f37916",version:"2.0",plugins:["AMap.Scale","AMap.ToolBar"]}).then(async AMap=>{
   guideAMap=AMap;guideMap=new AMap.Map("shop-map",{zoom:14,center:[121.48,31.23],viewMode:"2D"});guideMap.addControl(new AMap.Scale());guideMap.addControl(new AMap.ToolBar());updateGuideMap();
   await Promise.all(supportedAreas.map(async name=>{
-    const prefix=name==="大世界"?"dashijie":"asia";spatialData[name]={};
+    const prefix=areaPrefixes[name];spatialData[name]={};
     await Promise.all([["building","building"],["entrances","entrances"],["service","service-areas"]].map(async([kind,suffix])=>{
       try{const response=await fetch("./"+prefix+"-"+suffix+"-amap.json?v=asia1",{cache:"no-cache"});if(!response.ok)throw Error(suffix);const data=await response.json();if(!Array.isArray(data.features))throw Error("格式错误");spatialData[name][kind]=data;}catch(error){console.error(name+suffix+"读取失败",error);}
     }));
